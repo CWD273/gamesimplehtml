@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Flappy Bird Game</title>
+  <meta charset="UTF-8">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      display: flex;
+      flex-direction: column; /* Stack score and canvas vertically */
+      align-items: center;
+      justify-content: center;
+      background: skyblue; /* Restore the original sky-blue background */
+    }
+
+    #score-container {
+      color: black;
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+
+    canvas {
+      border: 2px solid black;
+    }
+
+    #overlay {
+      display: flex;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 18px;
+      border: none;
+      background-color: orange;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    button:hover {
+      background-color: darkorange;
+    }
+  </style>
+</head>
+<body>
+<div id="score-container">
+  Score: <span id="current-score">0</span> | Best: <span id="best-score">0</span>
+</div>
+<div id="overlay">
+  <div id="message" style="font-size: 32px; margin-bottom: 20px;">Flappy Bird</div>
+  <div id="scores" style="font-size: 20px; margin-bottom: 20px;"></div>
+  <button id="start">Start Game</button>
+</div>
+<canvas width="400" height="600" id="game"></canvas>
+<script>
+const canvas = document.getElementById('game');
+const context = canvas.getContext('2d');
+const overlay = document.getElementById('overlay');
+const startButton = document.getElementById('start');
+const message = document.getElementById('message');
+const scores = document.getElementById('scores');
+const currentScoreDisplay = document.getElementById('current-score');
+const bestScoreDisplay = document.getElementById('best-score');
+
+let bird = { x: 50, y: 300, width: 20, height: 20, dy: 0 };
+let gravity = 0.5;
+let jump = -8;
+let pipes = [];
+let pipeGap = 150;
+let pipeWidth = 50;
+let frame = 0;
+let score = 0;
+let bestScore = localStorage.getItem('bestScore') ? parseInt(localStorage.getItem('bestScore'), 10) : 0;
+let isGameRunning = false;
+
+bestScoreDisplay.textContent = bestScore; // Display the best score initially
+
+function resetGame() {
+  bird = { x: 50, y: 300, width: 20, height: 20, dy: 0 };
+  pipes = [];
+  frame = 0;
+  score = 0;
+  currentScoreDisplay.textContent = score; // Reset the score display
+  isGameRunning = true;
+  overlay.style.display = 'none'; // Hide the overlay
+  loop();
+}
+
+function endGame() {
+  isGameRunning = false;
+
+  // Check if we have a new best score
+  if (score > bestScore) {
+    bestScore = score;
+    localStorage.setItem('bestScore', bestScore); // Save the best score to localStorage
+    message.textContent = 'New Best!';
+  } else {
+    message.textContent = 'Game Over';
+  }
+
+  scores.innerHTML = `Score: ${score}<br>Best: ${bestScore}`;
+  bestScoreDisplay.textContent = bestScore; // Update the best score display
+  startButton.textContent = 'Restart Game';
+  overlay.style.display = 'flex'; // Show the overlay
+}
+
+function drawBird() {
+  context.fillStyle = 'yellow';
+  context.fillRect(bird.x, bird.y, bird.width, bird.height);
+}
+
+function drawPipes() {
+  context.fillStyle = 'green';
+  pipes.forEach(pipe => {
+    context.fillRect(pipe.x, 0, pipeWidth, pipe.top); // Upper pipe
+    context.fillRect(pipe.x, pipe.top + pipeGap, pipeWidth, canvas.height - pipe.top - pipeGap); // Lower pipe
+  });
+}
+
+function updateBird() {
+  bird.dy += gravity;
+  bird.y += bird.dy;
+
+  if (bird.y + bird.height > canvas.height || bird.y < 0) {
+    endGame();
+  }
+}
+
+function updatePipes() {
+  if (frame % 100 === 0) {
+    let top = Math.random() * (canvas.height / 2);
+    pipes.push({ x: canvas.width, top });
+  }
+
+  pipes.forEach(pipe => {
+    pipe.x -= 2;
+
+    // Collision detection
+    if (
+      bird.x < pipe.x + pipeWidth &&
+      bird.x + bird.width > pipe.x &&
+      (bird.y < pipe.top || bird.y + bird.height > pipe.top + pipeGap)
+    ) {
+      endGame();
+    }
+
+    // Remove off-screen pipes and increase score
+    if (pipe.x + pipeWidth < 0) {
+      pipes.shift();
+      score++;
+      currentScoreDisplay.textContent = score; // Update the current score display
+    }
+  });
+}
+
+function loop() {
+  if (!isGameRunning) return;
+
+  context.clearRect(0, 0, canvas.width, canvas.height);
+
+  updateBird();
+  updatePipes();
+
+  drawBird();
+  drawPipes();
+
+  frame++;
+  requestAnimationFrame(loop);
+
+  // Send the height of the page to the parent iframe
+  const totalHeight = document.body.scrollHeight;
+  window.parent.postMessage({ type: 'resize', height: totalHeight }, '*');
+}
+
+// Handle start/restart button click
+startButton.addEventListener('click', resetGame);
+
+// Apply bird jump on keydown
+document.addEventListener('keydown', () => {
+  if (!isGameRunning) return;
+  bird.dy = jump;
+});
+
+// Show the initial start screen
+message.textContent = 'Flappy Bird';
+scores.innerHTML = '';
+startButton.textContent = 'Start Game';
+overlay.style.display = 'flex';
+
+// Send the initial height to the parent iframe
+const totalHeight = document.body.scrollHeight;
+window.parent.postMessage({ type: 'resize', height: totalHeight }, '*');
+</script>
+</body>
+</html>
