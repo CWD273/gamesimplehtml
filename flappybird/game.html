@@ -1,4 +1,4 @@
-\<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
   <title>Flappy Bird Game</title>
@@ -69,6 +69,8 @@ const canvas = document.getElementById('game');
 const context = canvas.getContext('2d');
 const overlay = document.getElementById('overlay');
 const startButton = document.getElementById('start');
+const message = document.getElementById('message');
+const scores = document.getElementById('scores');
 const currentScoreDisplay = document.getElementById('current-score');
 const bestScoreDisplay = document.getElementById('best-score');
 
@@ -99,13 +101,18 @@ function resetGame() {
 
 function endGame() {
   isGameRunning = false;
-  
+
   if (score > bestScore) {
     bestScore = score;
     localStorage.setItem('bestScore', bestScore);
+    message.textContent = 'New Best!';
+  } else {
+    message.textContent = 'Game Over';
   }
-  
+
+  scores.innerHTML = `Score: ${score}<br>Best: ${bestScore}`;
   bestScoreDisplay.textContent = bestScore;
+  startButton.textContent = 'Restart Game';
   overlay.style.display = 'flex';
 }
 
@@ -175,6 +182,12 @@ document.addEventListener('keydown', (event) => {
 canvas.addEventListener('click', () => {
   if (isGameRunning) bird.dy = jump;
 });
+
+message.textContent = 'Flappy Bird';
+scores.innerHTML = '';
+startButton.textContent = 'Start Game';
+overlay.style.display = 'flex';
 </script>
 </body>
 </html>
+
